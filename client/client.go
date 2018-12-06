@@ -39,6 +39,14 @@ func New(address string) (*Client, error) {
 	return &Client{u}, nil
 }
 
+// BaseURL returns the base URL of the client.
+func (c *Client) BaseURL() *url.URL {
+	return &url.URL{
+		Scheme: c.baseURL.Scheme,
+		Host:   c.baseURL.Host,
+	}
+}
+
 // sendRequest sends a request with an optional JSON-encoded body and returns the response.
 func (c *Client) sendRequest(
 	ctx context.Context,
