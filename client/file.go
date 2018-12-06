@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -135,6 +136,35 @@ func (f *FileRef) NewReader(ctx context.Context) (*Reader, error) {
 	req, err := http.NewRequest(http.MethodGet, f.URL(), nil)
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrFileNotFound
+	}
+
+	return &Reader{body: resp.Body, size: resp.ContentLength}, nil
+}
+
+// NewRangeReader reads at most length bytes from a file starting at the given offset.
+// If length is negative, the file is read until the end.
+//
+// If the file doesn't exist, this returns ErrFileNotFound.
+//
+// The caller must call Close on the returned Reader when finished reading.
+func (f *FileRef) NewRangeReader(ctx context.Context, offset, length int64) (*Reader, error) {
+	req, err := http.NewRequest(http.MethodGet, f.URL(), nil)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if length < 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+	} else {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, offset+length-1))
 	}
 
 	httpClient := http.Client{}
