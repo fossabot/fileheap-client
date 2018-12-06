@@ -38,7 +38,7 @@ func (i *FileIterator) Next() (*FileRef, *api.FileInfo, error) {
 	}
 
 	path := path.Join("/packages", i.pkg.id, "manifest")
-	query := url.Values{"cursor": []string{i.cursor}, "path": []string{i.path}}
+	query := url.Values{"cursor": {i.cursor}, "path": {i.path}}
 	resp, err := i.pkg.client.sendRequest(i.ctx, http.MethodGet, path, query, nil)
 	if err != nil {
 		return nil, nil, err
@@ -147,4 +147,37 @@ func (f *FileRef) NewReader(ctx context.Context) (*Reader, error) {
 	}
 
 	return &Reader{body: resp.Body, size: resp.ContentLength}, nil
+}
+
+// NewWriter returns a storage Writer that writes to the file associated with
+// this reference.
+//
+// The file will be replaced if it exists or created if not. The file
+// becomes available when Close returns successfully. The previous file is
+// readable until the new file replaces it.
+//
+// It is the caller's responsibility to call Close when writing is complete.
+func (f *FileRef) NewWriter(ctx context.Context, opts *WriteOpts) (*Writer, error) {
+	if opts == nil {
+		opts = &WriteOpts{}
+	}
+
+	return &Writer{
+		ctx:    ctx,
+		file:   f,
+		length: opts.Length,
+		digest: opts.Digest,
+		done:   make(chan struct{}),
+	}, nil
+}
+
+// WriteOpts allows clients to set attributes on a file during upload.
+type WriteOpts struct {
+	// (required) Total length of the upload to be written.
+	Length int64
+
+	// (required) Digest is the SHA256 hash of the object's content. If set and
+	// the service has matching data, the service will copy the necessary data
+	// internally. The digest may also be used to validate later writes.
+	Digest []byte
 }
