@@ -96,6 +96,9 @@ func (f *FileRef) Info(ctx context.Context) (*api.FileInfo, error) {
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, ErrFileNotFound
 	}
+	if err := errorFromResponse(resp); err != nil {
+		return nil, err
+	}
 
 	info := &api.FileInfo{Path: f.path, Size: resp.ContentLength}
 	if d := resp.Header.Get(api.HeaderDigest); d != "" {
@@ -124,7 +127,7 @@ func (f *FileRef) Delete(ctx context.Context) error {
 	if resp.StatusCode == http.StatusNotFound {
 		return ErrFileNotFound
 	}
-	return nil
+	return errorFromResponse(resp)
 }
 
 // NewReader reads the contents of a stored file.
@@ -145,6 +148,9 @@ func (f *FileRef) NewReader(ctx context.Context) (*Reader, error) {
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, ErrFileNotFound
+	}
+	if err := errorFromResponse(resp); err != nil {
+		return nil, err
 	}
 
 	return &Reader{body: resp.Body, size: resp.ContentLength}, nil
@@ -174,6 +180,9 @@ func (f *FileRef) NewRangeReader(ctx context.Context, offset, length int64) (*Re
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, ErrFileNotFound
+	}
+	if err := errorFromResponse(resp); err != nil {
+		return nil, err
 	}
 
 	return &Reader{body: resp.Body, size: resp.ContentLength}, nil

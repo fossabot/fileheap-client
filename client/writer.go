@@ -89,6 +89,11 @@ func (w *Writer) open() {
 		req.Header.Set("User-Agent", userAgent)
 
 		req.ContentLength = w.length
+		if w.length == 0 {
+			// A zero content length with a non-nil body is treated as unknown.
+			// Explicity set the body to send zero content length.
+			req.Body = http.NoBody
+		}
 		req.Header.Set(api.HeaderDigest, "SHA256 "+base64.StdEncoding.EncodeToString(w.digest))
 
 		client := &http.Client{}

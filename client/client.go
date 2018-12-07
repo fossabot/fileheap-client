@@ -90,7 +90,7 @@ func errorFromResponse(resp *http.Response) error {
 
 	var apiErr api.Error
 	if err := json.Unmarshal(bytes, &apiErr); err != nil {
-		return errors.Wrap(err, "failed to parse response")
+		return errors.Wrapf(err, "failed to parse response: %s", string(bytes))
 	}
 
 	return apiErr
